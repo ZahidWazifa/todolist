@@ -17,7 +17,10 @@ async function getData() {
     },
   });
 
-  return data;
+  return data.map(todo => ({
+    ...todo,
+    isCompleted: todo.iscompleted,
+  }));
 }
 const Home = async () => {
   const data = await getData();

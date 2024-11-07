@@ -58,14 +58,14 @@ export async function todoStatus(formData: FormData) {
     return;
   }
 
-  const updatedStatus = !todo.isCompleted;
+  const updatedStatus = !todo.iscompleted;
 
   await prisma.todo.update({
     where: {
       id: inputId,
     },
     data: {
-      isCompleted: updatedStatus,
+      iscompleted: updatedStatus,
     },
   });
 
