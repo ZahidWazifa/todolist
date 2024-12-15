@@ -1,49 +1,84 @@
 version: '3'
 
 services:
-  app:
-    build: .
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+      - "--accesslog=true"
+      - "--accesslog.filepath=/logs/access.log"
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-
-  app1:
-    build: .
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-
-  app2:
-    build: .
-    ports:
-      - "3002:3002"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
+      - "2000:80"
+      - "8081:8080"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - app
-      - app1
-      - app2
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./logs:/logs
+    networks:
+      - web
 
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    depends_on:
-      - nginx
+  todoapp1:
+    build: .
+    container_name: todoapp1
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.todoapp1.rule=Host(`192.168.1.102`)"
+      - "traefik.http.routers.todoapp1.entrypoints=web"
+      - "traefik.http.services.todoapp1.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.todoapp1-strip.stripprefix.prefixes=/"
+      - "traefik.http.routers.todoapp1.middlewares=todoapp1-strip"
+    networks:
+      - web
 
-volumes:
-  mongo-data:
+  todoapp2:
+    build: .
+    container_name: todoapp2
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.todoapp2.rule=Host(`192.168.1.102`)"
+      - "traefik.http.routers.todoapp2.entrypoints=web"
+      - "traefik.http.services.todoapp2.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.todoapp2-strip.stripprefix.prefixes=/"
+      - "traefik.http.routers.todoapp2.middlewares=todoapp2-strip"
+    networks:
+      - web
+
+  todoapp3:
+    build: .
+    container_name: todoapp3
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.todoapp3.rule=Host(`192.168.1.102`)"
+      - "traefik.http.routers.todoapp3.entrypoints=web"
+      - "traefik.http.services.todoapp3.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.todoapp3-strip.stripprefix.prefixes=/"
+      - "traefik.http.routers.todoapp3.middlewares=todoapp3-strip"
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge

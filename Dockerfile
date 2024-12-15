@@ -1,17 +1,20 @@
-FROM node:14
-
-# Create app directory
-WORKDIR /usr/src/app
-
-# Install app dependencies
+FROM node:18-alpine AS builder
+WORKDIR /app
 COPY package*.json ./
+COPY prisma ./prisma
 RUN npm install
-
-# Bundle app source
 COPY . .
+RUN npx prisma generate
+RUN npm run build
 
-# Expose the port the app runs on
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/prisma ./prisma
+
 EXPOSE 3000
-
-# Command to run the app
-CMD ["npm", "start"]
+CMD ["npm", "run", "start"]
